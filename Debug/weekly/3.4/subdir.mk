@@ -1,0 +1,30 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+################################################################################
+
+# Add inputs and outputs from these tool invocations to the build variables 
+CPP_SRCS += \
+../weekly/3.4/A.cpp \
+../weekly/3.4/C.cpp \
+../weekly/3.4/E.cpp 
+
+OBJS += \
+./weekly/3.4/A.o \
+./weekly/3.4/C.o \
+./weekly/3.4/E.o 
+
+CPP_DEPS += \
+./weekly/3.4/A.d \
+./weekly/3.4/C.d \
+./weekly/3.4/E.d 
+
+
+# Each subdirectory must supply rules for building sources it contributes
+weekly/3.4/%.o: ../weekly/3.4/%.cpp
+	@echo 'Building file: $<'
+	@echo 'Invoking: Cross G++ Compiler'
+	g++ -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@" "$<"
+	@echo 'Finished building: $<'
+	@echo ' '
+
+
