@@ -1,13 +1,5 @@
 /***** MIN-COST FLOW *****/
 
-#include <iostream>
-#include <cstdio>
-#include <queue>
-#include <vector>
-#include <algorithm>
-#include <cstring>
-
-using namespace std;
 const int MAX = 1215;
 const int INF = 1231231231;
 
@@ -82,11 +74,6 @@ void add_edge(int u, int v, int cp, int cst)
 
 
 /***** FFT WITH PRIMES *****/
-
-#include <iostream>
-#include <vector>
-
-using namespace std;
 
 typedef long long ll;
 
@@ -177,96 +164,161 @@ int main()
 
 /***** TREAP *****/
 
-#include <iostream>
-#include <vector>
-
-using namespace std;
-
 typedef long long ll;
 
-const ll P = 2013265921; // 15*2^27+1
-const ll ORDER = (1 << 27);
-const ll ROOT = 440564289; // ORDER'th root of unity
-const int MAX = (1 << 16);
-
-ll omega[MAX];
-
-ll power(ll b, ll e)
+struct Treap
 {
-	ll res = 1;
-	while(e > 0)
+	int size, key, val;
+	ll pri;
+	Treap *left, *right;
+
+	Treap(int s, int k, int v, ll p, Treap* l, Treap* r)
 	{
-		if(e % 2 == 1) res = (res * b) % P;
-		b = (b * b) % P;
-		e /= 2;
+		size = s;
+		key = k;
+		val = v;
+		pri = p;
+		left = l;
+		right = r;
 	}
-	return res;
-}
+};
+Treap* nil = new Treap(0, 0, 0, -1, NULL, NULL);
 
-void fft(vector<ll> &A, int n, bool inverse = false)
+void get_size(Treap* &node)
 {
-	int N = (1 << n);
-	ll root = power(ROOT, ORDER / N * (inverse ? (N - 1) : 1));
-	omega[0] = 1;
-	for(int i = 1; i < N; i++) omega[i] = (omega[i - 1] * root) % P;
-	for(int i = 0; i < n; i++)
+	if(node == nil) return;
+	node->size = node->left->size + node->right->size + 1;
+}
+void rotate_left(Treap* &node)
+{
+	Treap* aux = node->left;
+	node->left = node->left->right;
+	aux->right = node;
+	node = aux;
+
+	get_size(node->left);
+	get_size(node->right);
+	get_size(node);
+}
+void rotate_right(Treap* &node)
+{
+	Treap* aux = node->right;
+	node->right = node->right->left;
+	aux->left = node;
+	node = aux;
+
+	get_size(node->left);
+	get_size(node->right);
+	get_size(node);
+}
+void balance(Treap* &node)
+{
+	if(node->left->pri > node->pri) rotate_left(node);
+	if(node->right->pri > node->pri) rotate_right(node);
+	get_size(node);
+}
+void insert(Treap* &node, int key, int val)
+{
+	if(node == nil)
 	{
-		for(int j = 0; j < (1 << i); j++)
+		node = new Treap(1, key, val, ((ll)(rand()) << 15) + rand(), nil, nil);
+		return;
+	}
+
+	if(node->key > key) insert(node->left, key, val);
+	else insert(node->right, key, val);
+
+	balance(node);
+}
+void erase(Treap* &node, int key)
+{
+	if(node->key > key)
+	{
+		erase(node->left, key);
+		balance(node);
+	}
+	else if(node->key < key)
+	{
+		erase(node->right, key);
+		balance(node);
+	}
+	else
+	{
+		if(node->left == nil && node->right == nil)
 		{
-			for(int k = 0; k < (1 << (n - i - 1)); k++)
-			{
-				int s = (j << (n - i)) + k;
-				int t = s + (1 << (n - i - 1));
-				ll w = omega[k << i];
-				ll temp = A[s] + A[t];
-				if(temp >= P) temp -= P;
-				ll temp2 = A[s] - A[t] + P;
-				A[t] = (w * temp2) % P;
-				A[s] = temp;
-			}
+			delete node;
+			node = nil;
+			return;
+		}
+		if(node->left->pri > node->right->pri)
+		{
+			rotate_left(node);
+			erase(node->right, key);
+			balance(node);
+		}
+		else
+		{
+			rotate_right(node);
+			erase(node->left, key);
+			balance(node);
 		}
 	}
-	for(int i = 0; i < N; i++)
-	{
-		int x = i, y = 0;
-		for(int j = 0; j < n; j++)
-		{
-			y = y * 2 + x % 2;
-			x /= 2;
-		}
-		if(i < y) swap(A[i], A[y]);
-	}
-	if(inverse)
-	{
-		ll inv = power(N, P - 2);
-		for(int i = 0; i < N; i++) A[i] = (A[i] * inv) % P;
-	}
+}
+Treap* find_rank(Treap* node, int rank)
+{
+	if(node->left->size == rank) return node;
+
+	if(node->left->size > rank) return find_rank(node->left, rank);
+	else return find_rank(node->right, rank - node->left->size - 1);
+}
+void dfs_order_print(Treap* node)
+{
+	if(node == nil) return;
+	cout << "(";
+	dfs_order_print(node->left);
+	cout << ")";
+	cout << node->key << "->" << node->val;
+	cout << "(";
+	dfs_order_print(node->right);
+	cout << ")";
 }
 
-vector<ll> conv(vector<ll> A, vector<ll> B)
+
+Treap* root = nil;
+
+int main()
 {
-	int N = A.size() + B.size();
-	int n = 1;
-	while((1 << n) < N) n++;
-	while(A.size() < (1 << n)) A.push_back(0);
-	while(B.size() < (1 << n)) B.push_back(0);
-	fft(A, n);
-	fft(B, n);
-	for(int i = 0; i < (1 << n); i++) A[i] = (A[i] * B[i]) % P;
-	fft(A, n, true);
-	return A;
+	srand(time(0));
+	while(true)
+	{
+		char t;
+		cin >> t;
+		if(t == 'i')
+		{
+			int k, v;
+			cin >> k >> v;
+			insert(root, k, v);
+		}
+		else if(t == 'd')
+		{
+			int k;
+			cin >> k;
+			erase(root, k);
+		}
+		else
+		{
+			int r;
+			cin >> r;
+			Treap* node = find_rank(root, r);
+			cout << node->key << "->" << node->val << endl;
+		}
+		dfs_order_print(root);
+	}
 }
 
 
 
 /***** MAX-FLOW *****/
-
-#include <iostream>
-#include <algorithm>
-#include <cstring>
-#include <queue>
-
-using namespace std;
 
 const int MAX = 205;
 
@@ -333,13 +385,6 @@ void add_edge(int u, int v, int c)
 
 
 /***** SUFFIX ARRAY *****/
-
-#include <iostream>
-#include <algorithm>
-#include <vector>
-#include <cstring>
-
-using namespace std;
 
 typedef long long ll;
 
@@ -485,11 +530,6 @@ void find_pals(const string& S)
 
 /***** RANK SEGTREE *****/
 
-#include <cstdio>
-#include <cstring>
-
-using namespace std;
-
 const int MAX = (1 << 21);
 const int OFFSET = (1 << 20);
 
@@ -527,7 +567,7 @@ struct RankSegTree
 
 
 
-SEG TREE SINGLE INSERT, SEGMENT LOOKUP
+// SEG TREE SINGLE INSERT, SEGMENT LOOKUP
 
 const int MAX = 65536;
 
@@ -562,138 +602,7 @@ int lookup(int l, int r)
 
 
 
-
-SEG TREE SEGMENT INSERT, SINGLE LOOKUP
-
-
-const int VOID = -1;
-const int MAX = 16;
-
-int seg[2 * MAX];
-
-void init()
-{
-    for(int i = 0; i < 2 * MAX; i++)
-        seg[i] = VOID;
-}
-
-void insert2(int v, int l, int r, int p, int a, int b)
-{
-    if(a >= r || b <= l)
-        return;
-    if(l <= a && b <= r)
-        seg[p] = v;
-    else
-    {
-        if(seg[p] != VOID)
-        {
-            seg[p * 2] = seg[p]; // propagate
-            seg[p * 2 + 1] = seg[p];
-        }
-        seg[p] = VOID;
-        int m = (a + b) / 2;
-        insert2(v, l, r, p * 2, a, m);
-        insert2(v, l, r, p * 2 + 1, m, b);
-    }
-}
-
-void insert(int v, int l, int r)
-{
-    insert2(v, l, r, 1, 0, MAX);
-}
-
-int lookup(int i)
-{
-    int res = VOID;
-    for(int p = MAX + i; p > 0; p /= 2)
-    {
-        if(seg[p] != VOID)
-            res = seg[p]; // look for last modified
-    }
-    return res;
-}
-
-
-
-SEG TREE SEGMENT INSERT, SEGMENT LOOKUP
-
-struct node {
-    ll val, sum, time, weight;
-};
-struct SegTree {
-    int timestamp = 0;
-    node seg[2 * MAX];
-    void init() {
-        for(int i = 0; i < MAX; i++) {
-            seg[MAX + i].weight = ((i < segs.size()) ? (segs[i].second - segs[i].first + 1) : 0);
-        }
-        for(int i = MAX - 1; i > 0; i--) {
-            seg[i].weight = seg[i * 2].weight + seg[i * 2 + 1].weight;
-        }
-        for(int i = 0; i < 2 * MAX; i++) {
-            seg[i].val = 1;
-            seg[i].sum = seg[i].weight * 1;
-            seg[i].time = timestamp;
-        }
-        timestamp++;
-    }
-    void propagate_up(int p) {
-        if(p < MAX) {
-            seg[p].sum = seg[p * 2].sum + seg[p * 2 + 1].sum;
-        }
-    }
-    void propagate_down(int p) {
-        if(p < MAX) {
-            for(int q = p * 2; q <= p * 2 + 1; q++) {
-                if(seg[q].time < seg[p].time) {
-                    seg[q].val = seg[p].val;
-                    seg[q].sum = seg[q].weight * seg[q].val;
-                    seg[q].time = seg[p].time;
-                }
-            }
-        }
-    }
-    void insert2(int v, int l, int r, int p, int a, int b) {
-        if(a >= r || b <= l) return;
-        if(l <= a && b <= r) {
-            seg[p].val = v;
-            seg[p].sum = seg[p].weight * v;
-            seg[p].time = timestamp;
-            return;
-        }
-        propagate_down(p);
-        int m = (a + b) / 2;
-        insert2(v, l, r, p * 2, a, m);
-        insert2(v, l, r, p * 2 + 1, m, b);
-        propagate_up(p);
-    }
-    void insert(int v, int l, int r) {
-        insert2(v, l, r + 1, 1, 0, MAX);
-        timestamp++;
-    }
-    ll lookup2(int l, int r, int p, int a, int b) {
-        if(a >= r || b <= l) return 0;
-        if(l <= a && b <= r) return seg[p].sum;
-        propagate_down(p);
-        int m = (a + b) / 2;
-        return lookup2(l, r, p * 2, a, m) + lookup2(l, r, p * 2 + 1, m, b);
-    }
-    ll lookup(int l, int r) {
-        return lookup2(l, r + 1, 1, 0, MAX);
-    }
-};
-
-
-
-2D GEO, CONVEX HULL
-
-#include <iostream>
-#include <vector>
-#include <cmath>
-#include <cstdio>
-#include <algorithm>
-
-using namespace std;
+// 2D GEO
 
 const double EPS = 1e-8;
 
@@ -748,92 +657,116 @@ bool intersects(Segment S, Segment T)
     return true;
 }
 
-double length(Point v)
+
+
+// STRONGLY CONNECTED COMPONENTS
+
+const int MAX = 100100;
+
+struct SCC
 {
-    return sqrt(v.x * v.x + v.y * v.y);
+	int N, cnt, cmpt;
+	int num[MAX], low[MAX], ans[MAX];
+	vector<int> G[MAX];
+	vector<int> S; // stack
+	bool on_stack[MAX];
+	
+	void reset()
+	{
+		for(int i = 0; i < MAX; i++) G[i].clear();
+	}
+	void strong(int u)
+	{
+		if(num[u] != 0) return;
+		num[u] = low[u] = ++cnt;
+		S.push_back(u);
+		on_stack[u] = true;
+		for(int i = 0; i < G[u].size(); i++)
+		{
+			int v = G[u][i];
+			strong(v);
+		}
+		for(int i = 0; i < G[u].size(); i++)
+		{
+			int v = G[u][i];
+			if(on_stack[v]) low[u] = min(low[u], low[v]);
+		}
+		if(num[u] == low[u])
+		{
+			while(!S.empty())
+			{
+				int x = S.back();
+				S.pop_back();
+				on_stack[x] = false;
+				ans[x] = cmpt;
+				if(x == u) break;
+			}
+			cmpt++;
+		}
+	}
+	void scc()
+	{
+		memset(num, 0, sizeof(num));
+		memset(low, 0, sizeof(low));
+		memset(ans, 0, sizeof(ans));
+		memset(on_stack, 0, sizeof(on_stack));
+		S.clear();
+		cnt = 0;
+		cmpt = 0;
+		for(int i = 1; i <= N; i++) strong(i);
+	}
+};
+
+
+
+
+// KMP
+
+const int MAX = 100005;
+
+int T[MAX];
+void build_table(string& W)
+{
+	int pos = 2, cnd = 0;
+	T[0] = -1, T[1] = 0;
+	while(pos < W.size())
+	{
+		if(W[pos - 1] == W[cnd])
+			cnd++, T[pos] = cnd, pos++;
+		else if(cnd > 0)
+			cnd = T[cnd];
+		else
+			T[pos] = 0, pos++;
+	}
 }
 
-bool cmp(Point p, Point q)
+bool full[MAX];
+void kmp_search(string& S, string& W)
 {
-    return p.x < q.x;
+	memset(full, 0, sizeof(full));
+	int m = 0, i = 0;
+	while(m + i < S.size())
+	{
+		if(i == W.size() - 1) full[m] = true;
+		if(W[i] == S[m + i])
+			i++;
+		else
+		{
+			if(T[i] > -1)
+				m += i - T[i], i = T[i];
+			else
+				i = 0, m++;
+		}
+	}
 }
 
-int N;
-Point P[50050];
-
-double upper_hull()
-{
-    sort(P, P + N, cmp);
-    vector<int> S;
-    for(int i = 0; i < N; i++)
-    {
-        while(S.size() >= 2)
-        {
-            Point A = P[S[S.size() - 2]], B = P[S[S.size() - 1]], C = P[i];
-            if(cross(A - B, C - B) > -EPS) S.pop_back();
-            else break;
-        }
-        S.push_back(i);
-    }
-    double total = 0;
-    for(int i = 1; i < S.size(); i++) total += length(P[S[i]] - P[S[i - 1]]);
-    return total;
-}
-
-Point rotate(Point p, double theta)
-{
-    return Point(cos(theta) * p.x + sin(theta) * p.y, -sin(theta) * p.x + cos(theta) * p.y);
-}
+string S, W;
 
 int main()
 {
-    cin >> N;
-    for(int i = 0; i < N; i++)
-    {
-        cin >> P[i].x >> P[i].y;
-        P[i] = rotate(P[i], 123.456789);
-    }
-    double total = upper_hull();
-    for(int i = 0; i < N; i++) P[i] = P[i] * -1;
-    total += upper_hull();
-    printf("%.9f\n", total);
-    return 0;
-}
-
-
-
-MORE 2D GEO
-
-
-double length(Point v)
-{
-    return sqrt(v.x * v.x + v.y * v.y);
-}
-double angle(Point u, Point v)
-{
-    return acos(dot(u, v) / (length(u) * length(v)));
-}
-double dist(Point p, Segment S)
-{
-    Point a = S.s, b = S.t;
-    if(angle(p - b, a - b) > PI/2) return length(p - b);
-    if(angle(p - a, b - a) > PI/2) return length(p - a);
-    return abs(cross(a - p, b - p) / length(a - b));
-}
-
-bool intersects(Segment S, Segment T)
-{
-    Point A = S.s, B = T.s, C = S.t, D = T.t;
-    Point u = A - B, v = A - C, w = A - D;
-    //cout << "cross = " << cross(v, u) * cross(v, w) << endl;
-    if(cross(v, u) * cross(v, w) > -EPS) return false;
-    u = B - A, v = B - D, w = B - C;
-    if(cross(v, u) * cross(v, w) > -EPS) return false;
-    return true;
-}
-bool on_seg(Point p, Segment S)
-{
-    Point A = S.s, B = S.t;
-    Point u = A - p, v = B - p;
-    return abs(dot(u, v) + length(u) * length(v)) < EPS;
+	cin >> S >> W;
+	S += "###";
+	W += '$';
+	build_table(W);
+	kmp_search(S, W);
 }
