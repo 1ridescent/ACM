@@ -135,7 +135,7 @@ int main()
 			if(i > 0)
 			{
 				//val = max(val, group[i].second);
-				set<pair<int, int> >::iterator it = pick.upper_bound(make_pair(group[i].second, -1));
+				set<pair<int, int> >::iterator it = pick.upper_bound(make_pair(group[i].second + 1, -1));
 				if(it != pick.begin())
 				{
 					it--;
